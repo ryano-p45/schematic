@@ -10,7 +10,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT || 3000)
 const isProd = process.env.NODE_ENV === 'production'
 const SITE_PASSWORD = process.env.SITE_PASSWORD || (isProd ? '' : 'schematic-view')
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (isProd ? '' : 'schematic-admin-ship')
+const ADMIN_TOKEN =
+  process.env.ADMIN_TOKEN ||
+  process.env.SCHEMATIC_ADMIN_TOKEN ||
+  (isProd ? '' : 'schematic-admin-ship')
 const COOKIE_NAME = 'schematic_session'
 
 if (isProd && (!SITE_PASSWORD || !ADMIN_TOKEN)) {
