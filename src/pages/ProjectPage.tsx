@@ -109,23 +109,22 @@ export function ProjectPage({ onLogout }: { onLogout: () => void }) {
 function FlowPanel({ flowKey, flow }: { flowKey: string; flow: FlowBundle }) {
   const title = flow.title || flowKey
   const compact = flowKey !== 'system'
+  const isReactFlow = flow.type === 'reactflow' || flow.type === 'react-flow'
 
   return (
-    <div className="bezel span-12">
-      <div className="card">
-        <span className="label">{title}</span>
-        {flow.type === 'reactflow' || flow.type === 'react-flow' ? (
-          <FlowBoard nodes={flow.nodes} edges={flow.edges} compact={compact} />
-        ) : (
-          <div className="bento" style={{ marginTop: '0.75rem' }}>
-            {'blocks' in flow
-              ? flow.blocks.map((b, i) => (
-                  <BlockCard key={`${b.title}-${i}`} block={b} className="span-4" />
-                ))
-              : null}
-          </div>
-        )}
-      </div>
+    <div className="flow-panel span-12">
+      <span className="label">{title}</span>
+      {isReactFlow ? (
+        <FlowBoard nodes={flow.nodes} edges={flow.edges} compact={compact} />
+      ) : (
+        <div className="bento" style={{ marginTop: '0.75rem' }}>
+          {'blocks' in flow
+            ? flow.blocks.map((b, i) => (
+                <BlockCard key={`${b.title}-${i}`} block={b} className="span-4" />
+              ))
+            : null}
+        </div>
+      )}
     </div>
   )
 }

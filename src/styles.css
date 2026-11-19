@@ -143,17 +143,26 @@ button, input { font: inherit; }
   .span-12 { grid-column: span 12; }
 }
 
+#flows .bento { gap: 0; }
+.flow-panel + .flow-panel {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
 .flow-board {
   height: min(72vh, 780px);
   min-height: 420px;
-  border-radius: calc(var(--radius-inner) - 0.1rem);
   overflow: hidden;
-  background: var(--paper);
-  border: 1px solid var(--rule);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 .flow-board.compact {
-  height: 280px;
-  min-height: 240px;
+  height: min(52vh, 520px);
+  min-height: 360px;
+}
+.flow-board .react-flow {
+  background: transparent !important;
 }
 
 .flow-node {
