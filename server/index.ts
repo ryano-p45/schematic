@@ -8,10 +8,15 @@ import type { ProjectBundle } from './types.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT || 3000)
-const SITE_PASSWORD = process.env.SITE_PASSWORD || 'schematic-view'
-const ADMIN_TOKEN = process.env.ADMIN_TOKEN || 'schematic-admin-ship'
-const COOKIE_NAME = 'schematic_session'
 const isProd = process.env.NODE_ENV === 'production'
+const SITE_PASSWORD = process.env.SITE_PASSWORD || (isProd ? '' : 'schematic-view')
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || (isProd ? '' : 'schematic-admin-ship')
+const COOKIE_NAME = 'schematic_session'
+
+if (isProd && (!SITE_PASSWORD || !ADMIN_TOKEN)) {
+  console.error('SITE_PASSWORD and ADMIN_TOKEN are required in production')
+  process.exit(1)
+}
 
 const app = express()
 app.set('trust proxy', 1)
@@ -84,14 +89,30 @@ app.post('/api/projects', (req, res) => {
     res.status(401).json({ ok: false, error: 'unauthorized' })
     return
   }
-  const body = req.body as ProjectBundle
-  if (!body?.slug || !body?.title || !body?.sections || !body?.flows) {
+  const raw = req.body as ProjectBundle & {
+    sections?: Record<string, { blocks?: unknown; cards?: unknown }>
+  }
+  if (!raw?.slug || !raw?.title || !raw?.sections || !raw?.flows) {
     res.status(400).json({ ok: false, error: 'invalid_bundle' })
     return
   }
+  // Accept skill schema `blocks` or legacy `cards`
+  const sections = Object.fromEntries(
+    Object.entries(raw.sections).map(([key, section]) => {
+      const s = section as { blocks?: unknown; cards?: unknown; headline?: string; lede?: string }
+      return [
+        key,
+        {
+          ...s,
+          blocks: s.blocks || s.cards || [],
+        },
+      ]
+    }),
+  ) as ProjectBundle['sections']
   const saved = upsertProject({
-    ...body,
-    updatedAt: body.updatedAt || new Date().toISOString(),
+    ...raw,
+    sections,
+    updatedAt: raw.updatedAt || new Date().toISOString(),
   })
   res.json({ ok: true, project: saved })
 })
