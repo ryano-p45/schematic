@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api, type FlowBundle, type Project } from '../api'
 import { BlockCard, SectionBlocks } from '../components/SectionBlocks'
-import { FlowBoard } from '../components/FlowBoard'
+import { PlaybookDiagram } from '../diagrams/PlaybookDiagram'
+
+const FLOW_ORDER = ['system', 'catalogue', 'order', 'orderPath', 'order-path']
 
 export function ProjectPage({ onLogout }: { onLogout: () => void }) {
   const { slug = '' } = useParams()
@@ -33,7 +35,13 @@ export function ProjectPage({ onLogout }: { onLogout: () => void }) {
     )
   }
 
-  const flowEntries = Object.entries(project.flows).filter(([, f]) => f)
+  const flowEntries = Object.entries(project.flows)
+    .filter(([, f]) => f)
+    .sort(([a], [b]) => {
+      const ia = FLOW_ORDER.indexOf(a)
+      const ib = FLOW_ORDER.indexOf(b)
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
+    })
 
   return (
     <>
@@ -86,11 +94,11 @@ export function ProjectPage({ onLogout }: { onLogout: () => void }) {
             <div className="section-head">
               <div className="step-num">04</div>
               <h2>Flows in detail</h2>
-              <p>Pan and zoom the boards in place — no separate full-size pages.</p>
+              <p>Playbook diagrams on the page — soft cards inside, no iframe frames.</p>
             </div>
-            <div className="bento">
+            <div className="flow-stack">
               {flowEntries.map(([key, flow]) => (
-                <FlowPanel key={key} flowKey={key} flow={flow!} />
+                <FlowPanel key={key} flow={flow!} />
               ))}
             </div>
           </div>
@@ -106,25 +114,23 @@ export function ProjectPage({ onLogout }: { onLogout: () => void }) {
   )
 }
 
-function FlowPanel({ flowKey, flow }: { flowKey: string; flow: FlowBundle }) {
-  const title = flow.title || flowKey
-  const compact = flowKey !== 'system'
-  const isReactFlow = flow.type === 'reactflow' || flow.type === 'react-flow'
+function FlowPanel({ flow }: { flow: FlowBundle }) {
+  if (flow.type === 'playbook') {
+    return (
+      <div className="flow-panel">
+        <PlaybookDiagram diagram={flow.diagram} />
+      </div>
+    )
+  }
 
   return (
-    <div className="flow-panel span-12">
-      <span className="label">{title}</span>
-      {isReactFlow ? (
-        <FlowBoard nodes={flow.nodes} edges={flow.edges} compact={compact} />
-      ) : (
-        <div className="bento" style={{ marginTop: '0.75rem' }}>
-          {'blocks' in flow
-            ? flow.blocks.map((b, i) => (
-                <BlockCard key={`${b.title}-${i}`} block={b} className="span-4" />
-              ))
-            : null}
-        </div>
-      )}
+    <div className="flow-panel">
+      {flow.title ? <span className="label">{flow.title}</span> : null}
+      <div className="bento" style={{ marginTop: '0.75rem' }}>
+        {flow.blocks.map((b, i) => (
+          <BlockCard key={`${b.title}-${i}`} block={b} className="span-4" />
+        ))}
+      </div>
     </div>
   )
 }

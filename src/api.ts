@@ -20,23 +20,8 @@ export type Section = {
   blocks: ContentBlock[]
 }
 
-export type FlowNode = {
-  id: string
-  type?: string
-  position: { x: number; y: number }
-  data: Record<string, unknown>
-}
-
-export type FlowEdge = {
-  id: string
-  source: string
-  target: string
-  animated?: boolean
-  label?: string
-}
-
 export type FlowBundle =
-  | { type: 'reactflow' | 'react-flow'; title?: string; nodes: FlowNode[]; edges: FlowEdge[] }
+  | { type: 'playbook'; title?: string; diagram: string }
   | { type: 'sections'; title?: string; blocks: ContentBlock[] }
 
 export type Project = {

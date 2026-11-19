@@ -12,31 +12,11 @@ export type Section = {
   blocks: ContentBlock[]
 }
 
-export type FlowNode = {
-  id: string
-  type?: string
-  position: { x: number; y: number }
-  data: Record<string, unknown>
-  style?: Record<string, unknown>
-  sourcePosition?: string
-  targetPosition?: string
-}
-
-export type FlowEdge = {
-  id: string
-  source: string
-  target: string
-  label?: string
-  animated?: boolean
-  style?: Record<string, unknown>
-  type?: string
-}
-
-export type ReactFlowBundle = {
-  type: 'reactflow' | 'react-flow'
+export type PlaybookFlow = {
+  type: 'playbook'
   title?: string
-  nodes: FlowNode[]
-  edges: FlowEdge[]
+  /** Built-in diagram id, e.g. iq-system | iq-catalogue | iq-orders | iq-order-path */
+  diagram: string
 }
 
 export type SectionsFlow = {
@@ -45,7 +25,7 @@ export type SectionsFlow = {
   blocks: ContentBlock[]
 }
 
-export type FlowBundle = ReactFlowBundle | SectionsFlow
+export type FlowBundle = PlaybookFlow | SectionsFlow
 
 export type ProjectBundle = {
   slug: string
@@ -59,9 +39,10 @@ export type ProjectBundle = {
     solution: Section
   }
   flows: {
-    system: FlowBundle
+    system?: FlowBundle
     catalogue?: FlowBundle
     order?: FlowBundle
+    orderPath?: FlowBundle
     [key: string]: FlowBundle | undefined
   }
 }
