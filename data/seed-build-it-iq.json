@@ -1,0 +1,578 @@
+{
+  "slug": "build-it-iq",
+  "title": "Build It × IQ",
+  "client": "Build It / Blyvoor",
+  "summary": "How a multi-store marketplace connects to per-store IQ Retail APIs — from onboard and catalogue unify through Ozow pending to sales-order write and capture.",
+  "updatedAt": "2026-11-19T15:00:00.000Z",
+  "sections": {
+    "problem": {
+      "headline": "The problem",
+      "lede": "One marketplace cart. Many independent IQ worlds. Stock truth, product codes, and sales still live in each store.",
+      "blocks": [
+        {
+          "label": "Tension",
+          "title": "One cart, many IQs",
+          "body": "Shoppers need one catalogue, one checkout (Ozow), and fulfilment from the best local store. Truth for stock, price, and sales still lives in each store’s IQ Retail / IQ Enterprise system.",
+          "bullets": [
+            "Each store is a standalone IQ server + database. No shared product codes across stores (cement can be 0101 in one store and CEM in another).",
+            "Store owners control their own data. There is no single group catalogue to lean on.",
+            "On-hand quantities are unreliable (stock can go negative when goods arrive on delivery note before invoice).",
+            "Paid web orders must land in IQ without re-keying, with payment and web references visible to staff."
+          ]
+        },
+        {
+          "label": "What we cannot afford",
+          "title": "Failure modes",
+          "tone": "dark",
+          "bullets": [
+            "Oversell from bad live quantities on the site.",
+            "Orders stuck outside IQ.",
+            "Till or network load from chatty sync.",
+            "Two stores, two SKU languages, one confused shopper."
+          ]
+        },
+        {
+          "label": "Today’s reality",
+          "title": "How IQ is set up",
+          "bullets": [
+            "One integration endpoint per store.",
+            "IQ exposes a REST API (JSON or XML) via IQEntAPIRestServer on the store server.",
+            "API config is per store: port, SSL/TLS certificates, authentication, rate limits.",
+            "Versions can differ between stores. API behaviour depends on version alignment."
+          ]
+        },
+        {
+          "label": "Catalogue reality",
+          "title": "Same product, different codes",
+          "bullets": [
+            "No enforced SKU scheme across stores.",
+            "Departments are more standardised than codes.",
+            "Weights, dimensions, and images are often empty.",
+            "FTG already maintains a large supplier master map that can seed unification."
+          ]
+        }
+      ]
+    },
+    "solving": {
+      "headline": "What we are solving",
+      "lede": "The marketplace needs reliable reads from each store, safe writes back into IQ, and one product language for shoppers.",
+      "blocks": [
+        {
+          "label": "Must read",
+          "title": "Per-store truth",
+          "bullets": [
+            "Products / stock master (codes, departments, barcodes).",
+            "Stock signal for allocation (honest scarcity, not fragile live on-hand).",
+            "Selling prices and active promotions."
+          ]
+        },
+        {
+          "label": "Must write",
+          "title": "No re-key path",
+          "bullets": [
+            "Sales order for paid web orders in the winning store’s IQ.",
+            "Customer create / match without duplicates.",
+            "Web order id + Ozow payment reference visible to staff.",
+            "Delivery fee line as stores already capture at POS."
+          ]
+        },
+        {
+          "label": "Also required",
+          "title": "Unify products across stores",
+          "tone": "preferred",
+          "body": "Shoppers see one cement bag. Behind the scenes, Platform45 maps each store’s local SKU into a canonical product, using supplier master data and a confidence-scored matching engine."
+        }
+      ]
+    },
+    "solution": {
+      "headline": "Our solution",
+      "lede": "Per-store IQ REST API, Platform45 background jobs, and a matching engine in the middle. No store-side SQL agent.",
+      "blocks": [
+        {
+          "label": "Approach",
+          "title": "API first",
+          "tone": "dark",
+          "body": "Each store runs IQEntAPIRestServer. Platform45 stores that store’s config (host, port, TLS certificates, Basic auth, rate limits). Background jobs fetch catalogue and stock, and confirm pending orders by calling the store API. A matching engine unifies divergent SKUs into one ecommerce catalogue."
+        },
+        {
+          "label": "1 · Connect",
+          "title": "Per-store API config",
+          "tone": "preferred",
+          "bullets": [
+            "Listen port and IP",
+            "TLS certificate, key, password",
+            "Basic authentication",
+            "Token expiry and rate limit"
+          ]
+        },
+        {
+          "label": "2 · Unify",
+          "title": "Matching engine",
+          "tone": "preferred",
+          "bullets": [
+            "Seed from FTG master mapping",
+            "Score by confidence",
+            "Auto-approve high confidence",
+            "Human review below the threshold",
+            "Rules learn from confirmed matches"
+          ]
+        },
+        {
+          "label": "3 · Trade safely",
+          "title": "Jobs + pending pay",
+          "tone": "preferred",
+          "bullets": [
+            "Sync catalogue and stock in the background",
+            "No live on-hand on the front end",
+            "Checkout creates a pending order after Ozow",
+            "Job confirms with the store API, then captures"
+          ]
+        },
+        {
+          "label": "Stock honesty",
+          "title": "Cache, don’t live-stream",
+          "body": "On-hand can go negative in IQ. We prefer a cached stock signal on the storefront and a final stock check against the API only at purchase time."
+        },
+        {
+          "label": "If the API path struggles",
+          "title": "File fallback",
+          "body": "Scheduled stock and price exports, plus importable order files, keep a pilot alive while the REST path is hardened. Same catalogue mapping either way."
+        }
+      ]
+    }
+  },
+  "flows": {
+    "system": {
+      "type": "reactflow",
+      "title": "Full system",
+      "nodes": [
+        {
+          "id": "p1",
+          "type": "phase",
+          "position": { "x": 24, "y": 0 },
+          "data": {
+            "label": "1 · Onboard",
+            "sub": "IQEntAPIRestServer config on Platform45"
+          }
+        },
+        {
+          "id": "n1",
+          "type": "ink",
+          "position": { "x": 24, "y": 72 },
+          "data": { "label": "Add store", "sub": "Blyvoor / pilot store" }
+        },
+        {
+          "id": "n2",
+          "type": "default",
+          "position": { "x": 280, "y": 72 },
+          "data": { "label": "API config", "sub": "Host · port · TLS · auth" }
+        },
+        {
+          "id": "n3",
+          "type": "default",
+          "position": { "x": 536, "y": 72 },
+          "data": { "label": "Rate limits", "sub": "Token expiry · QPS cap" }
+        },
+
+        {
+          "id": "p2",
+          "type": "phase",
+          "position": { "x": 24, "y": 200 },
+          "data": {
+            "label": "2 · Fetch stores",
+            "sub": "Background jobs call each store REST API"
+          }
+        },
+        {
+          "id": "n4",
+          "type": "default",
+          "position": { "x": 24, "y": 272 },
+          "data": { "label": "Job: fetch", "sub": "Products per store" }
+        },
+        {
+          "id": "n5",
+          "type": "default",
+          "position": { "x": 280, "y": 272 },
+          "data": { "label": "Store A", "sub": "SKU e.g. 0101" }
+        },
+        {
+          "id": "n6",
+          "type": "default",
+          "position": { "x": 536, "y": 272 },
+          "data": { "label": "Store B", "sub": "SKU e.g. CEM" }
+        },
+
+        {
+          "id": "p3",
+          "type": "phase",
+          "position": { "x": 24, "y": 400 },
+          "data": {
+            "label": "3 · Match",
+            "sub": "Matching engine · one product, many store SKUs"
+          }
+        },
+        {
+          "id": "n7",
+          "type": "default",
+          "position": { "x": 24, "y": 472 },
+          "data": { "label": "Score matches", "sub": "AI rules + confidence" }
+        },
+        {
+          "id": "n8",
+          "type": "default",
+          "position": { "x": 280, "y": 472 },
+          "data": { "label": "Auto ≥98%", "sub": "Learns from confirms" }
+        },
+        {
+          "id": "n8b",
+          "type": "soft",
+          "position": { "x": 280, "y": 568 },
+          "data": {
+            "label": "Human review",
+            "sub": "Low confidence · FTG map + ops"
+          }
+        },
+        {
+          "id": "n9",
+          "type": "default",
+          "position": { "x": 536, "y": 472 },
+          "data": { "label": "Canonical catalogue", "sub": "Ready for the storefront" }
+        },
+
+        {
+          "id": "p4",
+          "type": "phase",
+          "position": { "x": 24, "y": 680 },
+          "data": {
+            "label": "4 · Catalogue / cache",
+            "sub": "Honest scarcity · no live on-hand on the front end"
+          }
+        },
+        {
+          "id": "n10",
+          "type": "default",
+          "position": { "x": 24, "y": 752 },
+          "data": { "label": "Jobs sync stock", "sub": "On a safe cadence" }
+        },
+        {
+          "id": "n11",
+          "type": "default",
+          "position": { "x": 280, "y": 752 },
+          "data": { "label": "Platform cache", "sub": "Per store signal" }
+        },
+        {
+          "id": "n12",
+          "type": "default",
+          "position": { "x": 536, "y": 752 },
+          "data": { "label": "Storefront", "sub": "In / out or bands" }
+        },
+
+        {
+          "id": "p5",
+          "type": "phase",
+          "position": { "x": 24, "y": 880 },
+          "data": {
+            "label": "5 · Shop / checkout",
+            "sub": "One product experience · allocate a winning store"
+          }
+        },
+        {
+          "id": "n13",
+          "type": "default",
+          "position": { "x": 24, "y": 952 },
+          "data": { "label": "Customer browses", "sub": "Unified product" }
+        },
+        {
+          "id": "n14",
+          "type": "default",
+          "position": { "x": 280, "y": 952 },
+          "data": { "label": "Checkout", "sub": "Pick fulfilment store" }
+        },
+        {
+          "id": "n15",
+          "type": "default",
+          "position": { "x": 536, "y": 952 },
+          "data": { "label": "Ozow", "sub": "Payment authorised" }
+        },
+        {
+          "id": "n16",
+          "type": "default",
+          "position": { "x": 792, "y": 952 },
+          "data": { "label": "Order pending", "sub": "Not captured yet" }
+        },
+
+        {
+          "id": "p6",
+          "type": "phase",
+          "position": { "x": 24, "y": 1080 },
+          "data": {
+            "label": "6 · Confirm → SO → capture",
+            "sub": "Background job → store IQ API → sales order → payment"
+          }
+        },
+        {
+          "id": "n17",
+          "type": "default",
+          "position": { "x": 24, "y": 1152 },
+          "data": { "label": "Confirm job", "sub": "Respect rate limit" }
+        },
+        {
+          "id": "n18",
+          "type": "default",
+          "position": { "x": 280, "y": 1152 },
+          "data": { "label": "Final stock check", "sub": "API hit at purchase" }
+        },
+        {
+          "id": "n19",
+          "type": "default",
+          "position": { "x": 536, "y": 1152 },
+          "data": { "label": "Write sales order", "sub": "Local store SKU" }
+        },
+        {
+          "id": "n20",
+          "type": "ink",
+          "position": { "x": 792, "y": 1152 },
+          "data": { "label": "Capture payment", "sub": "Done" }
+        },
+        {
+          "id": "n21",
+          "type": "soft",
+          "position": { "x": 536, "y": 1264 },
+          "data": {
+            "label": "Soft-fail / retry",
+            "sub": "API down · keep pending · next-best · no double-post"
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "n1", "target": "n2", "animated": true },
+        { "id": "e2", "source": "n2", "target": "n3", "animated": true },
+        { "id": "e3", "source": "n3", "target": "n4", "animated": true },
+        { "id": "e4", "source": "n4", "target": "n5", "animated": true },
+        { "id": "e5", "source": "n5", "target": "n6", "animated": true },
+        { "id": "e6", "source": "n6", "target": "n7", "animated": true },
+        { "id": "e7", "source": "n7", "target": "n8", "animated": true },
+        { "id": "e8", "source": "n8", "target": "n9", "animated": true },
+        {
+          "id": "e8b",
+          "source": "n7",
+          "target": "n8b",
+          "label": "only sometimes",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "e8c",
+          "source": "n8b",
+          "target": "n9",
+          "label": "after review",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        { "id": "e9", "source": "n9", "target": "n10", "animated": true },
+        { "id": "e10", "source": "n10", "target": "n11", "animated": true },
+        { "id": "e11", "source": "n11", "target": "n12", "animated": true },
+        { "id": "e12", "source": "n12", "target": "n13", "animated": true },
+        { "id": "e13", "source": "n13", "target": "n14", "animated": true },
+        { "id": "e14", "source": "n14", "target": "n15", "animated": true },
+        { "id": "e15", "source": "n15", "target": "n16", "animated": true },
+        { "id": "e16", "source": "n16", "target": "n17", "animated": true },
+        { "id": "e17", "source": "n17", "target": "n18", "animated": true },
+        { "id": "e18", "source": "n18", "target": "n19", "animated": true },
+        { "id": "e19", "source": "n19", "target": "n20", "animated": true },
+        {
+          "id": "e20",
+          "source": "n18",
+          "target": "n21",
+          "label": "soft-fail",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "e21",
+          "source": "n21",
+          "target": "n16",
+          "label": "retry pending",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        }
+      ]
+    },
+    "catalogue": {
+      "type": "reactflow",
+      "title": "Catalogue unify · matching engine",
+      "nodes": [
+        {
+          "id": "c1",
+          "type": "default",
+          "position": { "x": 24, "y": 40 },
+          "data": { "label": "Store A IQ API", "sub": "SKU 0101 · own port / TLS / auth" }
+        },
+        {
+          "id": "c2",
+          "type": "default",
+          "position": { "x": 24, "y": 160 },
+          "data": { "label": "Store B IQ API", "sub": "SKU CEM · same product, different code" }
+        },
+        {
+          "id": "c3",
+          "type": "default",
+          "position": { "x": 24, "y": 280 },
+          "data": { "label": "Store config", "sub": "URL, certs, rate limit, token expiry" }
+        },
+        {
+          "id": "c4",
+          "type": "ink",
+          "position": { "x": 360, "y": 160 },
+          "data": { "label": "Matching engine", "sub": "AI rules + confidence" }
+        },
+        {
+          "id": "c5",
+          "type": "default",
+          "position": { "x": 680, "y": 40 },
+          "data": { "label": "Canonical catalogue", "sub": "One cement bag, not two codes" }
+        },
+        {
+          "id": "c6",
+          "type": "default",
+          "position": { "x": 680, "y": 160 },
+          "data": { "label": "Ruleset per store", "sub": "Auto ≥98% · learn from confirms" }
+        },
+        {
+          "id": "c7",
+          "type": "default",
+          "position": { "x": 680, "y": 280 },
+          "data": { "label": "Stock cache", "sub": "No live on-hand on FE" }
+        },
+        {
+          "id": "c8",
+          "type": "soft",
+          "position": { "x": 360, "y": 320 },
+          "data": { "label": "Human review", "sub": "Below threshold · FTG map + ops" }
+        }
+      ],
+      "edges": [
+        { "id": "ce1", "source": "c1", "target": "c4", "animated": true, "label": "fetch" },
+        { "id": "ce2", "source": "c2", "target": "c4", "animated": true, "label": "fetch" },
+        { "id": "ce3", "source": "c3", "target": "c4", "animated": true, "label": "config" },
+        { "id": "ce4", "source": "c4", "target": "c5", "animated": true, "label": "unify" },
+        { "id": "ce5", "source": "c4", "target": "c6", "animated": true },
+        { "id": "ce6", "source": "c4", "target": "c7", "animated": true },
+        {
+          "id": "ce7",
+          "source": "c4",
+          "target": "c8",
+          "label": "only sometimes",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "ce8",
+          "source": "c8",
+          "target": "c5",
+          "label": "after review",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        }
+      ]
+    },
+    "order": {
+      "type": "reactflow",
+      "title": "Paid order path · IQ API",
+      "nodes": [
+        {
+          "id": "o1",
+          "type": "ink",
+          "position": { "x": 24, "y": 48 },
+          "data": { "label": "Places order", "sub": "Canonical SKU" }
+        },
+        {
+          "id": "o2",
+          "type": "default",
+          "position": { "x": 248, "y": 48 },
+          "data": { "label": "Pending + Ozow", "sub": "Not captured yet" }
+        },
+        {
+          "id": "o3",
+          "type": "default",
+          "position": { "x": 472, "y": 48 },
+          "data": { "label": "Confirm job", "sub": "Rate-limited" }
+        },
+        {
+          "id": "o4",
+          "type": "default",
+          "position": { "x": 696, "y": 48 },
+          "data": { "label": "REST write", "sub": "TLS + Basic auth" }
+        },
+        {
+          "id": "o5",
+          "type": "ink",
+          "position": { "x": 920, "y": 48 },
+          "data": { "label": "SO posted", "sub": "Local store SKU" }
+        },
+        {
+          "id": "o6",
+          "type": "default",
+          "position": { "x": 472, "y": 180 },
+          "data": { "label": "Final stock check", "sub": "Not shown on FE" }
+        },
+        {
+          "id": "o7",
+          "type": "ink",
+          "position": { "x": 248, "y": 180 },
+          "data": { "label": "Capture payment", "sub": "Happy path" }
+        },
+        {
+          "id": "o8",
+          "type": "soft",
+          "position": { "x": 696, "y": 180 },
+          "data": { "label": "Soft-fail / retry", "sub": "Keep pending · no double-post" }
+        }
+      ],
+      "edges": [
+        { "id": "oe1", "source": "o1", "target": "o2", "animated": true },
+        { "id": "oe2", "source": "o2", "target": "o3", "animated": true },
+        { "id": "oe3", "source": "o3", "target": "o4", "animated": true },
+        { "id": "oe4", "source": "o4", "target": "o5", "animated": true },
+        {
+          "id": "oe5",
+          "source": "o3",
+          "target": "o6",
+          "label": "confirm loop",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "oe6",
+          "source": "o6",
+          "target": "o4",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "oe7",
+          "source": "o5",
+          "target": "o7",
+          "animated": true,
+          "label": "capture"
+        },
+        {
+          "id": "oe8",
+          "source": "o4",
+          "target": "o8",
+          "label": "soft-fail",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        },
+        {
+          "id": "oe9",
+          "source": "o8",
+          "target": "o2",
+          "label": "retry",
+          "type": "smoothstep",
+          "style": { "strokeDasharray": "4 5" }
+        }
+      ]
+    }
+  }
+}
