@@ -2,27 +2,24 @@
 
 Client-facing project schematics: **Problem → Solving → Solution → Flows**.
 
-Vite + React + TypeScript SPA with a small Express API, one Railway service.
+Vite + React + TypeScript SPA with a small Express API, one Railway service. Graphs render in-page with `@xyflow/react` (pan/zoom, no “open full size” links).
 
-## Env
+## Credentials (shareable)
 
-| Variable | Purpose |
+| Variable | Value |
 |---|---|
-| `SITE_PASSWORD` | Viewer login gate (httpOnly cookie) |
-| `ADMIN_TOKEN` | Bearer token for `POST /api/projects` (skill: `SCHEMATIC_ADMIN_TOKEN`) |
-| `PORT` | Listen port (Railway sets this) |
-| `DATA_DIR` | Writable store dir (Docker default `/data`) |
-| `NODE_ENV` | `production` on Railway |
+| `SITE_PASSWORD` | `schematic-view` |
+| `ADMIN_TOKEN` | `schematic-admin-ship` |
 
 ## Local
 
 ```bash
 npm install
-npm run dev          # API :3001 via proxy, Vite :5173
-npm run build && npm start
+npm run dev          # API :3001 via Vite proxy, client :5173
+npm run build && SITE_PASSWORD=schematic-view ADMIN_TOKEN=schematic-admin-ship PORT=3000 npm start
 ```
 
-Seed project loads from `server/data/projects/build-it-iq.json` on boot.
+Build It × IQ is auto-seeded from `data/seed-build-it-iq.json` on first boot.
 
 ## API
 
@@ -34,21 +31,19 @@ Seed project loads from `server/data/projects/build-it-iq.json` on boot.
 - `GET /api/projects/:slug` (auth)
 - `POST /api/projects` `Authorization: Bearer <ADMIN_TOKEN>` — upsert project bundle
 
-### Upload (matches Schematic skill)
+### Upsert a project
 
 ```bash
-SCHEMATIC_URL="https://your-app.up.railway.app" \
-SCHEMATIC_ADMIN_TOKEN="$ADMIN_TOKEN" \
-  ~/.cursor/skills/schematic/scripts/upload.sh ./project.bundle.json
-```
-
-Or:
-
-```bash
-curl -sS -X POST "$SCHEMATIC_URL/api/projects" \
-  -H "Authorization: Bearer $SCHEMATIC_ADMIN_TOKEN" \
+curl -X POST "$URL/api/projects" \
+  -H "Authorization: Bearer schematic-admin-ship" \
   -H "Content-Type: application/json" \
-  --data-binary @project.bundle.json
+  -d @data/seed-build-it-iq.json
 ```
 
-Bundle shape: `sections.{problem,solving,solution}.blocks` + `flows.system` (React Flow).
+## Env
+
+- `SITE_PASSWORD` — viewer login (required in production)
+- `ADMIN_TOKEN` — admin upload bearer token (required in production)
+- `PORT` — listen port (Railway sets this)
+- `NODE_ENV` — `production` on Railway
+- `DATA_DIR` — optional; defaults to `./data` (Docker uses `/data`)
